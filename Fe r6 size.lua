@@ -1,99 +1,85 @@
--- 📌 LocalScript: ใส่ใน StarterPlayerScripts
-
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-local player = Players.LocalPlayer
 
-local remoteName = "ScaleCharacterEvent"
+local defaultSize = Vector3.new(2, 2, 1)
 
--- สร้าง RemoteEvent ฝั่งเซิร์ฟ (ถ้ายังไม่มี)
-if RunService:IsClient() and not ReplicatedStorage:FindFirstChild(remoteName) then
-    local remote = Instance.new("RemoteEvent")
-    remote.Name = remoteName
-    remote.Parent = ReplicatedStorage
-
-    -- ฟังก์ชันฝั่งเซิร์ฟรับคำสั่ง
-    remote.OnServerEvent:Connect(function(plr, scale)
-        if scale < 0.5 then scale = 0.5 end
-        if scale > 3 then scale = 3 end
-
-        local character = plr.Character
-        if character then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                for _, part in pairs(character:GetChildren()) do
-                    if part:IsA("BasePart") then
-                        part.Size = part.Size * scale
-                        part.Position = part.Position + Vector3.new(0, (scale-1)*part.Size.Y/2, 0)
-                    end
-                end
-            end
-        end
-    end)
+local function scaleCharacter(character, scale)
+	if not character then return end
+	for _, part in pairs(character:GetChildren()) do
+		if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+			part.Size = defaultSize * scale
+		end
+	end
 end
 
-local RemoteEvent = ReplicatedStorage:WaitForChild(remoteName)
-local scale = 1
+Players.PlayerAdded:Connect(function(player)
+	-- ตัวแปรขนาด
+	local scale = 1
 
--- สร้าง UI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ScaleUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = player:WaitForChild("PlayerGui")
+	player.CharacterAdded:Connect(function(character)
+		wait(1)
+		scaleCharacter(character, scale)
 
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 150, 0, 50)
-Frame.Position = UDim2.new(0.5, -75, 0, 100)
-Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Frame.Active = true
-Frame.Draggable = true
-Frame.Parent = ScreenGui
+		-- สร้าง UI
+		local gui = Instance.new("ScreenGui")
+		gui.ResetOnSpawn = false
+		gui.Parent = player:WaitForChild("PlayerGui")
 
-local MinusBtn = Instance.new("TextButton")
-MinusBtn.Size = UDim2.new(0, 50, 1, 0)
-MinusBtn.Position = UDim2.new(0, 0, 0, 0)
-MinusBtn.Text = "-"
-MinusBtn.Font = Enum.Font.SourceSansBold
-MinusBtn.TextSize = 40
-MinusBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-MinusBtn.TextColor3 = Color3.new(1, 1, 1)
-MinusBtn.Parent = Frame
+		local frame = Instance.new("Frame")
+		frame.Size = UDim2.new(0, 220, 0, 70)
+		frame.Position = UDim2.new(0.5, -110, 0.1, 0)
+		frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+		frame.BackgroundTransparency = 0.1
+		frame.Active = true
+		frame.Draggable = true
+		frame.Parent = gui
 
-local PlusBtn = Instance.new("TextButton")
-PlusBtn.Size = UDim2.new(0, 50, 1, 0)
-PlusBtn.Position = UDim2.new(1, -50, 0, 0)
-PlusBtn.Text = "+"
-PlusBtn.Font = Enum.Font.SourceSansBold
-PlusBtn.TextSize = 40
-PlusBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-PlusBtn.TextColor3 = Color3.new(1, 1, 1)
-PlusBtn.Parent = Frame
+		local UICorner = Instance.new("UICorner")
+		UICorner.CornerRadius = UDim.new(0, 12)
+		UICorner.Parent = frame
 
-local Label = Instance.new("TextLabel")
-Label.Size = UDim2.new(0, 50, 1, 0)
-Label.Position = UDim2.new(0.5, -25, 0, 0)
-Label.Text = tostring(scale)
-Label.Font = Enum.Font.SourceSansBold
-Label.TextSize = 30
-Label.BackgroundTransparency = 1
-Label.TextColor3 = Color3.new(1, 1, 1)
-Label.Parent = Frame
+		local minusBtn = Instance.new("TextButton")
+		minusBtn.Size = UDim2.new(0, 60, 0, 60)
+		minusBtn.Position = UDim2.new(0, 10, 0, 5)
+		minusBtn.Text = "-"
+		minusBtn.Font = Enum.Font.SourceSansBold
+		minusBtn.TextSize = 50
+		minusBtn.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
+		minusBtn.TextColor3 = Color3.new(1,1,1)
+		minusBtn.Parent = frame
+		Instance.new("UICorner", minusBtn).CornerRadius = UDim.new(0, 10)
 
--- ปรับขนาดตัวละคร
-local function updateScale(newScale)
-    if newScale < 0.5 then newScale = 0.5 end
-    if newScale > 3 then newScale = 3 end
+		local plusBtn = Instance.new("TextButton")
+		plusBtn.Size = UDim2.new(0, 60, 0, 60)
+		plusBtn.Position = UDim2.new(1, -70, 0, 5)
+		plusBtn.Text = "+"
+		plusBtn.Font = Enum.Font.SourceSansBold
+		plusBtn.TextSize = 50
+		plusBtn.BackgroundColor3 = Color3.fromRGB(30, 180, 30)
+		plusBtn.TextColor3 = Color3.new(1,1,1)
+		plusBtn.Parent = frame
+		Instance.new("UICorner", plusBtn).CornerRadius = UDim.new(0, 10)
 
-    scale = newScale
-    Label.Text = string.format("%.1f", scale)
-    RemoteEvent:FireServer(scale)
-end
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(0, 80, 0, 60)
+		label.Position = UDim2.new(0.5, -40, 0, 5)
+		label.BackgroundTransparency = 1
+		label.TextColor3 = Color3.new(1,1,1)
+		label.TextScaled = true
+		label.Font = Enum.Font.SourceSansBold
+		label.Text = tostring(scale)
+		label.Parent = frame
 
-MinusBtn.MouseButton1Click:Connect(function()
-    updateScale(scale - 0.1)
-end)
+		-- ปุ่มกดเพิ่มลดขนาด
+		minusBtn.MouseButton1Click:Connect(function()
+			scale = math.max(0.5, scale - 0.1)
+			label.Text = string.format("%.1f", scale)
+			scaleCharacter(character, scale)
+		end)
 
-PlusBtn.MouseButton1Click:Connect(function()
-    updateScale(scale + 0.1)
+		plusBtn.MouseButton1Click:Connect(function()
+			scale = math.min(3, scale + 0.1)
+			label.Text = string.format("%.1f", scale)
+			scaleCharacter(character, scale)
+		end)
+	end)
 end)
